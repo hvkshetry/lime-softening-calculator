@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  output: 'export',
+  basePath: '/lime-softening-calculator',
+  images: {
+    unoptimized: true,
+  },
 }
 
 module.exports = nextConfig
