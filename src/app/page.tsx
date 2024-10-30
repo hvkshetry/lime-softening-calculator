@@ -1,3 +1,5 @@
+'use client';
+
 import LimeSoftenerCalculator from '@/components/LimeSoftenerCalculator'
 
 export default function Home() {
