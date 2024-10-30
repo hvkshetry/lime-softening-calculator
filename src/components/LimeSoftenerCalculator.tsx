@@ -43,13 +43,13 @@ const LimeSoftenerCalculator = () => {
   const MAX_SILICA_REMOVAL = 0.9;
   
   // pK for Mg(OH)2 varies with temperature
-  const calculateMgOHpK = (tempC) => {
+  const calculateMgOHpK = (tempC: number): number => {
     // Based on your graph, pK has linear relationship with temperature
     return 10.0 + (tempC/60); // Gives pK of ~10.5 at 25°C, matching literature
   };
 
   // Calculate residual Mg based on pH and temperature
-  const calculateResidualMg = (pH, tempC) => {
+  const calculateResidualMg = (pH: number, tempC: number): number => {
     const pK = calculateMgOHpK(tempC);
     const solubilityProduct = Math.pow(10, -pK);
     // Mg(OH)2 equilibrium: [Mg2+][OH-]² = Ksp
