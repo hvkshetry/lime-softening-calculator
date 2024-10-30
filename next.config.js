@@ -5,7 +5,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  assetPrefix: 'https://[your-username].github.io/lime-softening-calculator/'
+  assetPrefix: 'https://hvkshetry.github.io/lime-softening-calculator/'
 }
 
 module.exports = nextConfig
