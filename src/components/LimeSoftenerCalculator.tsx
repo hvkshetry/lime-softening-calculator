@@ -6,8 +6,58 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const LimeSoftenerCalculator = () => {
-  const [inputs, setInputs] = useState({
+// Define all interfaces
+interface InputState {
+  flowRate: number;
+  totalHardness: number;
+  calciumHardness: number;
+  alkalinity: number;
+  silica: number;
+  temperature: number;
+  pH: number;
+  targetHardness: number;
+  excessLime: number;
+  magnesiumDoseForSilica: number;
+}
+
+interface ResultsState {
+  limeDosage: number;
+  sodaAshDosage: number;
+  calciumSludge: number;
+  magnesiumSludge: number;
+  totalSludge: number;
+  finalHardness: number;
+  silicaRemoval: number;
+  finalSilica: number;
+  magnesiumHydroxideDose: number;
+  pHAfterLime: number;
+  controlRegime: string;
+}
+
+interface HardnessTypes {
+  caCarbHardness: number;
+  mgCarbHardness: number;
+  caNonCarbHardness: number;
+  mgNonCarbHardness: number;
+}
+
+interface DataPoint {
+  pH: number;
+  temp0?: number;
+  temp25?: number;
+  temp50?: number;
+  [key: string]: number | undefined;
+}
+
+interface LeakagePoint {
+  carbonate: number;
+  coldWater: number;
+  hotWater: number;
+}
+
+const LimeSoftenerCalculator: React.FC = () => {
+  // Initialize state with proper types
+  const [inputs, setInputs] = useState<InputState>({
     flowRate: 1000,
     totalHardness: 150,
     calciumHardness: 100,
@@ -19,20 +69,6 @@ const LimeSoftenerCalculator = () => {
     excessLime: 35,
     magnesiumDoseForSilica: 0,
   });
-
-  interface ResultsState {
-    limeDosage: number;
-    sodaAshDosage: number;
-    calciumSludge: number;
-    magnesiumSludge: number;
-    totalSludge: number;
-    finalHardness: number;
-    silicaRemoval: number;
-    finalSilica: number;
-    magnesiumHydroxideDose: number;
-    pHAfterLime: number;
-    controlRegime: string;
-  }
 
   const [results, setResults] = useState<ResultsState>({
     limeDosage: 0,
@@ -48,56 +84,9 @@ const LimeSoftenerCalculator = () => {
     controlRegime: 'Stoichiometric'
   });
 
-  const [leakageData, setLeakageData] = useState([]);
-
-  // Constants and equilibrium data
-  const MIN_PH_SILICA = 9.5;
-  const MAX_SILICA_REMOVAL = 0.9;
-  
-  // pK for Mg(OH)2 varies with temperature
-  const calculateMgOHpK = (tempC: number): number => {
-    // Based on your graph, pK has linear relationship with temperature
-    return 10.0 + (tempC/60); // Gives pK of ~10.5 at 25°C, matching literature
-  };
-
-  // Calculate residual Mg based on pH and temperature
-  const calculateResidualMg = (pH: number, tempC: number): number => {
-    const pK = calculateMgOHpK(tempC);
-    const solubilityProduct = Math.pow(10, -pK);
-    // Mg(OH)2 equilibrium: [Mg2+][OH-]² = Ksp
-    const OH = Math.pow(10, pH - 14);
-    const residualMg = (solubilityProduct / Math.pow(OH, 2)) * 50; // Convert to mg/L as CaCO3
-    return Math.min(100, residualMg); // Cap at 100 mg/L for visualization
-  };
-
-  // Define types for the data points
-  interface DataPoint {
-    pH: number;
-    temp0?: number;
-    temp25?: number;
-    temp50?: number;
-    [key: string]: number | undefined;  // Index signature for dynamic temperature keys
-  }
-
-  // Generate Mg solubility data for multiple temperatures
+  const [leakageData, setLeakageData] = useState<LeakagePoint[]>([]);
   const [mgSolubilityData, setMgSolubilityData] = useState<DataPoint[]>([]);
-  
-  useEffect(() => {
-    const data: DataPoint[] = [];
-    const temperatures = [0, 25, 50]; // Different temperature curves
-    
-    for (let pH = 9; pH <= 11; pH += 0.1) {
-      const point: DataPoint = { pH };
-      temperatures.forEach(temp => {
-        const key = `temp${temp}` as keyof DataPoint;
-        point[key] = calculateResidualMg(pH, temp);
-      });
-      data.push(point);
-    }
-    setMgSolubilityData(data);
-  }, []);
-
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setInputs(prev => ({
       ...prev,
@@ -105,9 +94,31 @@ const LimeSoftenerCalculator = () => {
     }));
   };
 
-  const calculateHardnessTypes = (input) => {
+  // Constants
+  const MIN_PH_SILICA = 9.5;
+  const MAX_SILICA_REMOVAL = 0.9;
+
+  // Calculate pK for Mg(OH)2
+  const calculateMgOHpK = (tempC: number): number => {
+    return 10.0 + (tempC/60);
+  };
+
+  // Calculate residual Mg
+  const calculateResidualMg = (pH: number, tempC: number): number => {
+    const pK = calculateMgOHpK(tempC);
+    const solubilityProduct = Math.pow(10, -pK);
+    const OH = Math.pow(10, pH - 14);
+    const residualMg = (solubilityProduct / Math.pow(OH, 2)) * 50;
+    return Math.min(100, residualMg);
+  };
+
+  // Calculate different hardness types
+  const calculateHardnessTypes = (input: InputState): HardnessTypes => {
     const magHardness = input.totalHardness - input.calciumHardness;
-    let caCarbHardness, mgCarbHardness, caNonCarbHardness, mgNonCarbHardness;
+    let caCarbHardness: number,
+        mgCarbHardness: number,
+        caNonCarbHardness: number,
+        mgNonCarbHardness: number;
 
     if (input.calciumHardness > input.alkalinity) {
       caCarbHardness = input.alkalinity;
@@ -134,60 +145,43 @@ const LimeSoftenerCalculator = () => {
     };
   };
 
-  const calculateCO2 = (pH, alkalinity) => {
+  // Calculate CO2
+  const calculateCO2 = (pH: number, alkalinity: number): number => {
     const K1 = 4.02e-7;
     return ((Math.pow(10, -pH) * alkalinity) / K1) * 2;
   };
 
-  const calculateMgOHSolubility = (tempC) => {
-    const pK = 10 + (tempC/60);
-    return Math.pow(10, -pK);
-  };
-
-  const calculateLimeDosage = (hardnessTypes, CO2) => {
-      // First, calculate stoichiometric lime demand based on hardness removal
+  // Calculate lime dosage
+  const calculateLimeDosage = (hardnessTypes: HardnessTypes, CO2: number): { limeDosage: number; controlRegime: string } => {
     const stoichLimeDosage = (
-      // CO2 neutralization
       CO2/22 +
-      // Ca hardness removal (both carbonate and non-carbonate)
-      (inputs.calciumHardness - inputs.targetHardness)/50 +
-      // Mg hardness removal (requires 2 OH- per Mg2+)
-      2 * ((inputs.totalHardness - inputs.calciumHardness)/50) +
-      // Extra lime for silica removal if specified
-      2 * (inputs.magnesiumDoseForSilica/50) +
-      // Excess lime for good measure
+      hardnessTypes.caCarbHardness/50 +
+      2 * hardnessTypes.mgCarbHardness/50 +
+      2 * hardnessTypes.mgNonCarbHardness/50 +
       inputs.excessLime/50
     );
 
-    // Now calculate pH-based lime demand for reaching target pH of 10.5-11
     const targetPH = 10.5;
     const pHAdjustLimeDosage = (
-      // CO2 neutralization
       CO2/22 +
-      // Convert all alkalinity to carbonate (requires 1 OH- per HCO3-)
-      inputs.alkalinity/50 +
-      // Additional OH- to reach target pH
-      Math.pow(10, -(14-targetPH)) * 2
+      inputs.alkalinity/50 * (1 - Math.pow(10, inputs.pH - 10.3)) +
+      Math.pow(10, -(14-targetPH)) - Math.pow(10, -inputs.pH)
     );
 
-    // Determine control regime
-    const limeDosage = Math.max(stoichLimeDosage, pHAdjustLimeDosage);
-    const controlRegime = stoichLimeDosage > pHAdjustLimeDosage ? 'Stoichiometric' : 'pH';
-
     return {
-      limeDosage,
-      controlRegime
+      limeDosage: Math.max(stoichLimeDosage, pHAdjustLimeDosage),
+      controlRegime: stoichLimeDosage > pHAdjustLimeDosage ? 'Stoichiometric' : 'pH'
     };
   };
 
-  const calculateResults = () => {
+  // Calculate results
+  const calculateResults = (): void => {
     try {
       const hardnessTypes = calculateHardnessTypes(inputs);
       const CO2 = calculateCO2(inputs.pH, inputs.alkalinity/50);
       
       const { limeDosage, controlRegime } = calculateLimeDosage(hardnessTypes, CO2);
-      
-      // Calculate magnesium hydroxide formation
+
       const magnesiumHydroxide = ((inputs.totalHardness - inputs.calciumHardness) + 
         inputs.magnesiumDoseForSilica) * (74/100);
 
@@ -216,18 +210,36 @@ const LimeSoftenerCalculator = () => {
         finalSilica: Math.max(0, inputs.silica - silicaRemoved),
         magnesiumHydroxideDose: magnesiumHydroxide,
         pHAfterLime: 10.5,
+        controlRegime
       });
     } catch (error) {
       console.error('Error in calculations:', error);
     }
   };
-
+// Effect for calculating results when inputs change
   useEffect(() => {
     calculateResults();
   }, [inputs]);
 
+  // Effect for generating Mg solubility data
   useEffect(() => {
-    const data = [];
+    const data: DataPoint[] = [];
+    const temperatures = [0, 25, 50];
+    
+    for (let pH = 9; pH <= 11; pH += 0.1) {
+      const point: DataPoint = { pH };
+      temperatures.forEach(temp => {
+        const key = `temp${temp}` as keyof DataPoint;
+        point[key] = calculateResidualMg(pH, temp);
+      });
+      data.push(point);
+    }
+    setMgSolubilityData(data);
+  }, []);
+
+  // Effect for generating Ca leakage data
+  useEffect(() => {
+    const data: LeakagePoint[] = [];
     for (let carbonate = 0; carbonate <= 100; carbonate += 5) {
       const caColdWater = 100 * Math.exp(-0.025 * carbonate);
       const caHotWater = 80 * Math.exp(-0.02 * carbonate);
@@ -245,10 +257,11 @@ const LimeSoftenerCalculator = () => {
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Improved Lime Softening Calculator</CardTitle>
+          <CardTitle>Lime Softening Calculator</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Input Section */}
             <div className="space-y-4">
               <h3 className="font-semibold">Input Parameters</h3>
               
@@ -342,6 +355,7 @@ const LimeSoftenerCalculator = () => {
               </div>
             </div>
 
+            {/* Results Section */}
             <div className="space-y-4">
               <h3 className="font-semibold">Results</h3>
               
@@ -390,6 +404,7 @@ const LimeSoftenerCalculator = () => {
             </div>
           </div>
 
+          {/* Visualizations */}
           <div className="mt-8 space-y-6">
             <h3 className="font-semibold">Process Operating Points</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -476,17 +491,6 @@ const LimeSoftenerCalculator = () => {
                   </ResponsiveContainer>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-lg mt-4">
-              <h4 className="font-medium mb-2">Operating pH Considerations</h4>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>Current operating pH target: {results.pHAfterLime.toFixed(1)}</li>
-                <li>For calcium removal: pH 9.0-9.5 (carbonate precipitation)</li>
-                <li>For magnesium removal: pH 10.3-10.8 (hydroxide precipitation)</li>
-                <li>For silica removal: pH > {MIN_PH_SILICA} (co-precipitation with Mg(OH)₂)</li>
-                <li>Operating temperature: {inputs.temperature}°C</li>
-              </ul>
             </div>
           </div>
         </CardContent>
