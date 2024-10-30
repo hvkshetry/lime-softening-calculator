@@ -139,15 +139,7 @@ const LimeSoftenerCalculator: React.FC = () => {
     }
     setMgSolubilityData(data);
   }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setInputs(prev => ({
-      ...prev,
-      [name]: parseFloat(value) || 0
-    }));
-  };
-
+  
   const calculateHardnessTypes = (input) => {
     const magHardness = input.totalHardness - input.calciumHardness;
     let caCarbHardness, mgCarbHardness, caNonCarbHardness, mgNonCarbHardness;
