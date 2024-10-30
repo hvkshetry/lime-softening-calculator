@@ -84,7 +84,6 @@ const LimeSoftenerCalculator: React.FC = () => {
   });
 
   const [leakageData, setLeakageData] = useState<LeakagePoint[]>([]);
-  const [mgSolubilityData, setMgSolubilityData] = useState<DataPoint[]>([]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
