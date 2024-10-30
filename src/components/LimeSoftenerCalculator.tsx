@@ -58,17 +58,27 @@ const LimeSoftenerCalculator = () => {
     return Math.min(100, residualMg); // Cap at 100 mg/L for visualization
   };
 
+  // Define types for the data points
+  interface DataPoint {
+    pH: number;
+    temp0?: number;
+    temp25?: number;
+    temp50?: number;
+    [key: string]: number | undefined;  // Index signature for dynamic temperature keys
+  }
+
   // Generate Mg solubility data for multiple temperatures
-  const [mgSolubilityData, setMgSolubilityData] = useState([]);
+  const [mgSolubilityData, setMgSolubilityData] = useState<DataPoint[]>([]);
   
   useEffect(() => {
-    const data = [];
+    const data: DataPoint[] = [];
     const temperatures = [0, 25, 50]; // Different temperature curves
     
     for (let pH = 9; pH <= 11; pH += 0.1) {
-      const point = { pH };
+      const point: DataPoint = { pH };
       temperatures.forEach(temp => {
-        point[`temp${temp}`] = calculateResidualMg(pH, temp);
+        const key = `temp${temp}` as keyof DataPoint;
+        point[key] = calculateResidualMg(pH, temp);
       });
       data.push(point);
     }
