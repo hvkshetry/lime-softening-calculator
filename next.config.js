@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',  // Enable static exports
-  basePath: '/lime-softening-calculator', // Match your repo name
+  output: 'export',
+  basePath: '/lime-softening-calculator',
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
-  assetPrefix: './', // Necessary for GitHub Pages
+  assetPrefix: 'https://[your-username].github.io/lime-softening-calculator/'
 }
 
 module.exports = nextConfig
