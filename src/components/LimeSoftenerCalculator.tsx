@@ -22,7 +22,21 @@ const LimeSoftenerCalculator = () => {
     magnesiumDoseForSilica: 0,
   });
 
-  const [results, setResults] = useState({
+  interface ResultsState {
+    limeDosage: number;
+    sodaAshDosage: number;
+    calciumSludge: number;
+    magnesiumSludge: number;
+    totalSludge: number;
+    finalHardness: number;
+    silicaRemoval: number;
+    finalSilica: number;
+    magnesiumHydroxideDose: number;
+    pHAfterLime: number;
+    controlRegime: string;
+  }
+
+  const [results, setResults] = useState<ResultsState>({
     limeDosage: 0,
     sodaAshDosage: 0,
     calciumSludge: 0,
