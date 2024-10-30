@@ -6,57 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Define interfaces for state types
-interface InputState {
-  flowRate: number;
-  totalHardness: number;
-  calciumHardness: number;
-  alkalinity: number;
-  silica: number;
-  temperature: number;
-  pH: number;
-  targetHardness: number;
-  excessLime: number;
-  magnesiumDoseForSilica: number;
-}
-
-interface ResultsState {
-  limeDosage: number;
-  sodaAshDosage: number;
-  calciumSludge: number;
-  magnesiumSludge: number;
-  totalSludge: number;
-  finalHardness: number;
-  silicaRemoval: number;
-  finalSilica: number;
-  magnesiumHydroxideDose: number;
-  pHAfterLime: number;
-  controlRegime: string;
-}
-
-interface HardnessTypes {
-  caCarbHardness: number;
-  mgCarbHardness: number;
-  caNonCarbHardness: number;
-  mgNonCarbHardness: number;
-}
-
-interface DataPoint {
-  pH: number;
-  temp0?: number;
-  temp25?: number;
-  temp50?: number;
-  [key: string]: number | undefined;
-}
-
-interface LeakagePoint {
-  carbonate: number;
-  coldWater: number;
-  hotWater: number;
-}
-
-const LimeSoftenerCalculator: React.FC = () => {
-  const [inputs, setInputs] = useState<InputState>({
+const LimeSoftenerCalculator = () => {
+  const [inputs, setInputs] = useState({
     flowRate: 1000,
     totalHardness: 150,
     calciumHardness: 100,
@@ -68,6 +19,20 @@ const LimeSoftenerCalculator: React.FC = () => {
     excessLime: 35,
     magnesiumDoseForSilica: 0,
   });
+
+  interface ResultsState {
+    limeDosage: number;
+    sodaAshDosage: number;
+    calciumSludge: number;
+    magnesiumSludge: number;
+    totalSludge: number;
+    finalHardness: number;
+    silicaRemoval: number;
+    finalSilica: number;
+    magnesiumHydroxideDose: number;
+    pHAfterLime: number;
+    controlRegime: string;
+  }
 
   const [results, setResults] = useState<ResultsState>({
     limeDosage: 0,
@@ -83,15 +48,7 @@ const LimeSoftenerCalculator: React.FC = () => {
     controlRegime: 'Stoichiometric'
   });
 
-  const [leakageData, setLeakageData] = useState<LeakagePoint[]>([]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setInputs(prev => ({
-      ...prev,
-      [name]: parseFloat(value) || 0
-    }));
-  };
+  const [leakageData, setLeakageData] = useState([]);
 
   // Constants and equilibrium data
   const MIN_PH_SILICA = 9.5;
@@ -139,7 +96,15 @@ const LimeSoftenerCalculator: React.FC = () => {
     }
     setMgSolubilityData(data);
   }, []);
-  
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setInputs(prev => ({
+      ...prev,
+      [name]: parseFloat(value) || 0
+    }));
+  };
+
   const calculateHardnessTypes = (input) => {
     const magHardness = input.totalHardness - input.calciumHardness;
     let caCarbHardness, mgCarbHardness, caNonCarbHardness, mgNonCarbHardness;
