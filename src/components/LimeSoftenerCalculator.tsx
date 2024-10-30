@@ -211,7 +211,7 @@ const LimeSoftenerCalculator: React.FC = () => {
         // Soda ash needed only for non-carbonate hardness
         sodaAshDosage: Math.max(0, (
           (hardnessTypes.caNonCarbHardness + hardnessTypes.mgNonCarbHardness) / 50
-        ) * 106), // Using molecular weight of Na2CO3 for conversion
+        ) * 53), // Using equivalent weight of Na2CO3 for conversion
         calciumSludge,
         magnesiumSludge,
         totalSludge: calciumSludge + magnesiumSludge,
