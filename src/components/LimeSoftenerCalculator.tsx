@@ -86,6 +86,7 @@ const LimeSoftenerCalculator: React.FC = () => {
 
   const [leakageData, setLeakageData] = useState<LeakagePoint[]>([]);
   const [mgSolubilityData, setMgSolubilityData] = useState<DataPoint[]>([]);
+  // Event handler for input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setInputs(prev => ({
@@ -153,14 +154,21 @@ const LimeSoftenerCalculator: React.FC = () => {
 
   // Calculate lime dosage
   const calculateLimeDosage = (hardnessTypes: HardnessTypes, CO2: number): { limeDosage: number; controlRegime: string } => {
+    // Calculate stoichiometric lime demand
     const stoichLimeDosage = (
+      // CO2 neutralization
       CO2/22 +
-      hardnessTypes.caCarbHardness/50 +
-      2 * hardnessTypes.mgCarbHardness/50 +
-      2 * hardnessTypes.mgNonCarbHardness/50 +
+      // All calcium hardness (both carbonate and non-carbonate, since soda ash converts non-carbonate to carbonate)
+      (inputs.calciumHardness - inputs.targetHardness)/50 +
+      // All magnesium hardness (requires 2 OH- per Mg2+)
+      2 * ((inputs.totalHardness - inputs.calciumHardness)/50) +
+      // Extra lime for silica removal
+      2 * (inputs.magnesiumDoseForSilica/50) +
+      // Excess lime
       inputs.excessLime/50
     );
 
+    // Calculate pH-based lime demand
     const targetPH = 10.5;
     const pHAdjustLimeDosage = (
       CO2/22 +
@@ -200,8 +208,10 @@ const LimeSoftenerCalculator: React.FC = () => {
 
       setResults({
         limeDosage: limeDosage * 37,
-        sodaAshDosage: Math.max(0, ((hardnessTypes.caNonCarbHardness + 
-          hardnessTypes.mgNonCarbHardness)/50) * 53),
+        // Soda ash needed only for non-carbonate hardness
+        sodaAshDosage: Math.max(0, (
+          (hardnessTypes.caNonCarbHardness + hardnessTypes.mgNonCarbHardness) / 50
+        ) * 106), // Using molecular weight of Na2CO3 for conversion
         calciumSludge,
         magnesiumSludge,
         totalSludge: calciumSludge + magnesiumSludge,
